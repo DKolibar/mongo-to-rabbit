@@ -1,1 +1,1 @@
-# mongo-to-rabbit v5.0.0
+# mongo-to-rabbit
