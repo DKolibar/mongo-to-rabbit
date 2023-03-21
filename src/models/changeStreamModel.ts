@@ -11,11 +11,11 @@ interface ChangeStream {
 const changeStreamSchema = new Schema({
   description: Object,
   eventId: { type: String, unique: true },
-  createdAt: { type: Date, default: Date.now },
+  createdAt: { type: Date },
 }, {versionKey: false});
 
-const changeStreamTrackerModel = (eventsCollectionDb: string, eventsCollectionName: string): mongoose.Model<any> => {
-  return mongoose.connection.useDb(eventsCollectionDb).model<ChangeStream & mongoose.Document>(eventsCollectionName, changeStreamSchema);
+const changeStreamTrackerModel = (eventsCollectionDb: string): mongoose.Model<any> => {
+  return mongoose.connection.useDb(eventsCollectionDb).model<ChangeStream & mongoose.Document>('record', changeStreamSchema);
 };
 
 export default changeStreamTrackerModel;

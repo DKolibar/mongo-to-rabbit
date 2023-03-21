@@ -9,7 +9,6 @@ export type RabbitDataType = {
 };
 
 export type MongoDataType = {
-  connectionName: string;
   eventDatabase: string;
   connectionString: string;
   healthCheckInterval?: number;

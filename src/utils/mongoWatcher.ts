@@ -74,7 +74,7 @@ export class MongoWatcher {
    */
   async initiateChangeStreamStartTime(): Promise<any> {
     // Get the last event
-    const latestEvent: any = await changeStreamTrackerModel(this.mongoData.eventDatabase, this.mongoData.connectionName)
+    const latestEvent: any = await changeStreamTrackerModel(this.mongoData.eventDatabase)
       .findOne({})
       .sort({ createdAt: -1 });
     const latestEventId = latestEvent && latestEvent.eventId;
@@ -87,7 +87,7 @@ export class MongoWatcher {
    */
   async initWatch(): Promise<void> {
     // Get the last event id that successfully sent to rabbit
-    const lastEventId = await this.initiateChangeStreamStartTime();
+    let lastEventId = await this.initiateChangeStreamStartTime();
 
     const pipeline = [{ $match: { $nor: [{'ns.db': `${this.mongoData.eventDatabase}`}] } }];
     const connection = connectionClient();
@@ -112,7 +112,7 @@ export class MongoWatcher {
 
           const eventId = (event._id as any)._data;
           // Update event stream document
-          changeStreamTrackerModel(this.mongoData.eventDatabase, this.mongoData.connectionName).findOneAndUpdate(
+          changeStreamTrackerModel(this.mongoData.eventDatabase).findOneAndUpdate(
             { eventId: lastEventId },
             { eventId, description: event, createdAt: Date.now() },
             { upsert: true },
@@ -120,15 +120,16 @@ export class MongoWatcher {
               if (err) criticalLog(`err in create event time ${err}`);
               else {
                 try {
-                  await changeStreamTrackerModel(this.mongoData.eventDatabase, this.mongoData.connectionName);
+                  await changeStreamTrackerModel(this.mongoData.eventDatabase);
                 } catch (error) {
                   criticalLog(
-                    `cant remove before events in collection ${this.mongoData.connectionName}, err: ${error}`
+                    `cant remove before events from collection in ${this.mongoData.eventDatabase}, err: ${error}`
                   );
                 }
               }
             }
           );
+          lastEventId = eventId;
         } catch (error) {
           criticalLog(`something went wrong in rabbit send msg ${error}`);
         }
