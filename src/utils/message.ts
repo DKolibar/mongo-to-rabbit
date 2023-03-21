@@ -32,7 +32,7 @@ export async function formatAndSendMsg(
   let formattedData;
 
   if (options.prettify) {
-    formattedData = defaultMiddleware(prettifyData(event), mongoData.connectionName);
+    formattedData = defaultMiddleware(prettifyData(event), 'record');
   } else {
     formattedData = event;
   }
