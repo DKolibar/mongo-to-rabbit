@@ -19,7 +19,6 @@
     "start": "tsc && npm run serve",
     "serve": "node lib/index.js",
     "build": "tsc",
-    "receive": "tsc && node lib/example/receive.js",
     "connect": "tsc -p . && node lib/example/connect.js",
     "prepublish": "tsc"
   },
