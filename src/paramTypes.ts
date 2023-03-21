@@ -8,7 +8,8 @@ export type RabbitDataType = {
 };
 
 export type MongoDataType = {
-  collectionName: string;
+  connectionName: string;
+  eventDatabase: string;
   connectionString: string;
   healthCheckInterval?: number;
 };
@@ -30,6 +31,9 @@ export type DataObjectType = {
   id: string;
   operation: string;
   fullDocument: object;
+
+  db: string
+  coll: string
   updateDescription: {
     updatedFields: object;
     removedFields: string[];

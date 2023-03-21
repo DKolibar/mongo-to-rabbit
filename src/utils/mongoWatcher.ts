@@ -1,13 +1,12 @@
 import mongoose, { ConnectOptions } from 'mongoose';
 import { ChangeStreamOptions, ChangeEvent, ResumeToken } from 'mongodb';
-import { ConnectionStringParser as CSParser, IConnectionStringParameters } from 'connection-string-parser';
 import sleep from './general';
 import changeStreamTrackerModel from '../models/changeStreamModel';
-import collectionModel from '../models/collectionModel';
 import { logger } from '../index';
 import { formatAndSendMsg } from './message';
 import { MongoDataType, MTROptions, RabbitDataType } from '../paramTypes';
 import { criticalLog } from './logger';
+import connectionClient from '../models/connectionClient';
 
 // Global variables
 const mongoOptions: ConnectOptions = {
@@ -16,7 +15,6 @@ const mongoOptions: ConnectOptions = {
   useCreateIndex: true,
   useUnifiedTopology: true,
 };
-const csParser = new CSParser({ scheme: 'mongodb', hosts: [] });
 
 /**
  * Get mongo connection health status
@@ -55,7 +53,7 @@ export class MongoWatcher {
     while (true) {
       try {
         logger.log(
-          `try connect mongo collection: ${this.mongoData.collectionName}, uri: ${this.mongoData.connectionString}`
+          `try connect mongo uri: ${this.mongoData.connectionString}`
         );
         await mongoose.connect(this.mongoData.connectionString, mongoOptions);
         logger.log(`successful connection to mongo on connectionString: ${this.mongoData.connectionString}`);
@@ -76,7 +74,7 @@ export class MongoWatcher {
    */
   async initiateChangeStreamStartTime(): Promise<any> {
     // Get the last event
-    const latestEvent: any = await changeStreamTrackerModel(this.mongoData.collectionName)
+    const latestEvent: any = await changeStreamTrackerModel(this.mongoData.eventDatabase, this.mongoData.connectionName)
       .findOne({})
       .sort({ createdAt: -1 });
     const latestEventId = latestEvent && latestEvent.eventId;
@@ -91,12 +89,8 @@ export class MongoWatcher {
     // Get the last event id that successfully sent to rabbit
     const lastEventId = await this.initiateChangeStreamStartTime();
 
-    // Select DB and Collection
-    const connectionObject: IConnectionStringParameters = csParser.parse(this.mongoData.connectionString);
-    const collection = collectionModel(this.mongoData.collectionName);
-
-    // Define collection change stream settings
-    const pipeline = [{ $match: { 'ns.db': connectionObject.endpoint, 'ns.coll': this.mongoData.collectionName } }];
+    const pipeline = [{ $match: { $nor: [{'ns.db': `${this.mongoData.eventDatabase}`}] } }];
+    const connection = connectionClient();
     const optionsStream: ChangeStreamOptions = { fullDocument: 'updateLookup' };
 
     if (lastEventId) {
@@ -105,12 +99,12 @@ export class MongoWatcher {
       optionsStream.startAfter = startAfterToken;
     }
 
-    const changeStream = collection.watch(pipeline, optionsStream);
+    const changeStream = connection.watch(pipeline, optionsStream);
 
     // start listen to changes
     changeStream
       .on('change', async (event: ChangeEvent<any>) => {
-        logger.log(`got mongo event: ${event.operationType}, at collection:${this.mongoData.collectionName}`);
+        logger.log(`got mongo event: ${event.operationType}, `);
 
         try {
           // Try send msg to all queues
@@ -120,18 +114,18 @@ export class MongoWatcher {
 
           const eventId = (event._id as any)._data;
           // Update event stream document
-          changeStreamTrackerModel(this.mongoData.collectionName).findOneAndUpdate(
-            { eventId },
-            { eventId, description: event },
+          changeStreamTrackerModel(this.mongoData.eventDatabase, this.mongoData.connectionName).findOneAndUpdate(
+            { eventId: lastEventId },
+            { eventId, description: event, createdAt: Date.now() },
             { upsert: true },
             async (err: any) => {
               if (err) criticalLog(`err in create event time ${err}`);
               else {
                 try {
-                  await changeStreamTrackerModel(this.mongoData.collectionName);
+                  await changeStreamTrackerModel(this.mongoData.eventDatabase, this.mongoData.connectionName);
                 } catch (error) {
                   criticalLog(
-                    `cant remove before events in collection ${this.mongoData.collectionName}, err: ${error}`
+                    `cant remove before events in collection ${this.mongoData.connectionName}, err: ${error}`
                   );
                 }
               }
@@ -144,9 +138,9 @@ export class MongoWatcher {
       .on('error', async (err: any) => {
         criticalLog('error in mongo');
         criticalLog(err);
-        this.mongoConnection();
+        await this.mongoConnection();
       });
 
-    logger.log(`MTR: ===> successful connection to collection: ${this.mongoData.collectionName}`);
+    logger.log('successful connection to mongo');
   }
 }

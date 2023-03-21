@@ -1,6 +1,6 @@
 {
   "name": "mongo-to-rabbit",
-  "version": "4.0.4",
+  "version": "5.0.0",
   "description": "a mongodb watcher notifying rabbitmq",
   "keywords": [
     "rabbitmq",
@@ -25,14 +25,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Shahar-Y/mongo-to-rabbit.git"
+    "url": "git+https://github.com/DKolibar/mongo-to-rabbit.git"
   },
   "author": "Shahar Yair",
+  "maintainers": [
+    "Daniel Kolibar"
+  ],
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Shahar-Y/mongo-to-rabbit/issues"
+    "url": "https://github.com/DKolibar/mongo-to-rabbit/issues"
   },
-  "homepage": "https://github.com/Shahar-Y/mongo-to-rabbit#readme",
+  "homepage": "https://github.com/DKolibar/mongo-to-rabbit#readme",
   "devDependencies": {
     "@types/amqplib": "^0.5.13",
     "@types/mongodb": "^3.6.12",

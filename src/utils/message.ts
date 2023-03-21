@@ -34,8 +34,8 @@ export async function formatAndSendMsg(
   if (options.prettify) {
     formattedData =
       queue.middleware === undefined
-        ? defaultMiddleware(prettifyData(event), mongoData.collectionName)
-        : queue.middleware(prettifyData(event), mongoData.collectionName);
+        ? defaultMiddleware(prettifyData(event), mongoData.connectionName)
+        : queue.middleware(prettifyData(event), mongoData.connectionName);
   } else {
     formattedData = event;
   }
@@ -93,14 +93,21 @@ export async function sendMsg(
  */
 export function prettifyData(data: ChangeEvent<any>): DataObjectType {
   // Create the basic dataObject
+  //{"id":"63f8b944d021270bdbf01f6d","operation":"update","fullDocument":{"_id":"63f8b944d021270bdbf01f6d","authorId":"84218830-b493-4be1-87d5-2ec9dab4d0e2","name":"Dupľa","distance":28242.1,"elapsedTime":20815,"totalElevationGain":1405.1,"sportType":"MountainBikeRide","startDate":"2022-10-28T07:32:32.000Z","averageSpeed":2.16,"gpxFilePath":"stravaimporter/gpx/1677244741-f47182c4-f290-4639-b03a-5e73607284ae.gpx","extra":{"strava_id":8031987603,"average_watts":178.2,"moving_time":13074},"credibilityOfGxpFile":-0.02069878578186035,"flagged":false,"gpxSum":"xxxxxxbxlxxabla"},"updateDescription":{"updatedFields":{"gpxSum":"xxxxxxbxlxxabla"},"removedFields":[],"truncatedArrays":[]}}
+
   const dataObject: DataObjectType = {
     id: 'null',
     operation: ChangeOperation.UNKNOWN,
     fullDocument: {},
+    db: 'null',
+    coll: 'null',
     updateDescription: { updatedFields: {}, removedFields: [] },
   };
 
   if (!data) return dataObject;
+
+  dataObject.db = (<any>data).ns.db;
+  dataObject.coll = (<any>data).ns.coll;
 
   dataObject.operation = data.operationType || ChangeOperation.UNKNOWN;
   if ((<any>data).documentKey) dataObject.id = (<any>data).documentKey._id;
