@@ -1,9 +1,9 @@
 import mongoose, { Schema } from 'mongoose';
-import { QueueObjectType } from '../paramTypes';
+import { ExchangeObjectType } from '../paramTypes';
 
 export interface IError {
   formattedMsg: Object;
-  destQueue: QueueObjectType;
+  destExchange: ExchangeObjectType;
   error: Object;
   createdAt?: Date;
 }

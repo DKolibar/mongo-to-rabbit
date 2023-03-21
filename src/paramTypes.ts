@@ -1,6 +1,7 @@
 import { ExchangeType } from 'menashmq';
 
 export type RabbitDataType = {
+  exchange: ExchangeObjectType;
   queues: QueueObjectType[];
   rabbitURI: string;
   rabbitRetries?: number;
@@ -48,8 +49,6 @@ export type ExchangeObjectType = {
 
 export type QueueObjectType = {
   name: string;
-  exchange?: ExchangeObjectType;
-  middleware?: MiddlewareFuncType;
 };
 
 type SupportedReturnTypes = null | string | Object | Buffer | string[] | Object[] | Buffer[] | undefined;

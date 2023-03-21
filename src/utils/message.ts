@@ -8,7 +8,7 @@ import {
   MongoDataType,
   MTROptions,
   QueueObjectType,
-  ChangeOperation,
+  ChangeOperation, ExchangeObjectType
 } from '../paramTypes';
 import { criticalLog } from './logger';
 
@@ -24,7 +24,7 @@ const sendMsgTimeout = 30000;
  * @param {MongoDataType}               mongoData - mongoData options
  */
 export async function formatAndSendMsg(
-  queue: QueueObjectType,
+  exchange: ExchangeObjectType,
   options: MTROptions,
   event: ChangeEvent<any>,
   mongoData: MongoDataType
@@ -32,30 +32,27 @@ export async function formatAndSendMsg(
   let formattedData;
 
   if (options.prettify) {
-    formattedData =
-      queue.middleware === undefined
-        ? defaultMiddleware(prettifyData(event), mongoData.connectionName)
-        : queue.middleware(prettifyData(event), mongoData.connectionName);
+    formattedData = defaultMiddleware(prettifyData(event), mongoData.connectionName);
   } else {
     formattedData = event;
   }
 
   if (formattedData) {
     Array.isArray(formattedData)
-      ? await Promise.all(formattedData.map(async (dataContent) => sendMsg(queue, dataContent, true)))
-      : await sendMsg(queue, formattedData, true);
+      ? await Promise.all(formattedData.map(async (dataContent) => sendMsg(exchange, dataContent, true)))
+      : await sendMsg(exchange, formattedData, true);
   }
 }
 
 /**
  * sendMsg function to queue - by exchange or direct queue
- * @param {QueueObjectType} queue   - queue object
+ * @param {ExchangeObjectType} exchange   - exchange object
  * @param {any}             msg     - formatted msg
  * @param {boolean}         isMongoWatcher - is msg from mongo watcher or initiated manually
  * @param {number}          msgTimeout - timeout in milliseconds for send msg
  */
 export async function sendMsg(
-  queue: QueueObjectType,
+  exchange: ExchangeObjectType,
   msg: any,
   isMongoWatcher = false,
   msgTimeout: number = sendMsgTimeout
@@ -64,9 +61,7 @@ export async function sendMsg(
   const sendProperties: ExchangeSendProperties | QueueSendProperties = { deliveryMode: 2 };
 
   const sender = async () => {
-    queue.exchange
-      ? await menash.send(queue.exchange.name, msg, sendProperties, queue.exchange.routingKey)
-      : await menash.send(queue.name, msg, sendProperties);
+    await menash.send(exchange.name, msg, sendProperties);
   };
 
   // Check if send msg to rabbit was succesful, defines a timeout for the sender
@@ -79,7 +74,7 @@ export async function sendMsg(
 
     // Create error rabbit sender
     criticalLog(errMsg);
-    const errorDoc: IError = { formattedMsg: msg, destQueue: queue, error: err };
+    const errorDoc: IError = { formattedMsg: msg, destExchange: exchange, error: err };
     errorModel.create(errorDoc, async (error: any) => {
       err ? console.error('err in create error msg doc', errorDoc, error) : criticalLog('send to rabbit error');
     });
@@ -93,7 +88,7 @@ export async function sendMsg(
  */
 export function prettifyData(data: ChangeEvent<any>): DataObjectType {
   // Create the basic dataObject
-  //{"id":"63f8b944d021270bdbf01f6d","operation":"update","fullDocument":{"_id":"63f8b944d021270bdbf01f6d","authorId":"84218830-b493-4be1-87d5-2ec9dab4d0e2","name":"Dupľa","distance":28242.1,"elapsedTime":20815,"totalElevationGain":1405.1,"sportType":"MountainBikeRide","startDate":"2022-10-28T07:32:32.000Z","averageSpeed":2.16,"gpxFilePath":"stravaimporter/gpx/1677244741-f47182c4-f290-4639-b03a-5e73607284ae.gpx","extra":{"strava_id":8031987603,"average_watts":178.2,"moving_time":13074},"credibilityOfGxpFile":-0.02069878578186035,"flagged":false,"gpxSum":"xxxxxxbxlxxabla"},"updateDescription":{"updatedFields":{"gpxSum":"xxxxxxbxlxxabla"},"removedFields":[],"truncatedArrays":[]}}
+  // {"id":"63f8b944d021270bdbf01f6d","operation":"update","fullDocument":{"_id":"63f8b944d021270bdbf01f6d","authorId":"84218830-b493-4be1-87d5-2ec9dab4d0e2","name":"Dupľa","distance":28242.1,"elapsedTime":20815,"totalElevationGain":1405.1,"sportType":"MountainBikeRide","startDate":"2022-10-28T07:32:32.000Z","averageSpeed":2.16,"gpxFilePath":"stravaimporter/gpx/1677244741-f47182c4-f290-4639-b03a-5e73607284ae.gpx","extra":{"strava_id":8031987603,"average_watts":178.2,"moving_time":13074},"credibilityOfGxpFile":-0.02069878578186035,"flagged":false,"gpxSum":"xxxxxxbxlxxabla"},"updateDescription":{"updatedFields":{"gpxSum":"xxxxxxbxlxxabla"},"removedFields":[],"truncatedArrays":[]}}
 
   const dataObject: DataObjectType = {
     id: 'null',
@@ -137,7 +132,7 @@ export async function sendFailedMsg(): Promise<void> {
   try {
     const failedMsgs: IError[] = await errorModel.find({}).sort({ createdAt: -1 });
     await errorModel.deleteMany({});
-    await Promise.all(failedMsgs.map(async (failedmsg) => await sendMsg(failedmsg.destQueue, failedmsg.formattedMsg)));
+    await Promise.all(failedMsgs.map(async (failedmsg) => await sendMsg(failedmsg.destExchange, failedmsg.formattedMsg)));
   } catch (error) {
     criticalLog(error);
   }

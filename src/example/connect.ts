@@ -11,12 +11,13 @@ import { MongoDataType, MTROptions, RabbitDataType, DataObjectType, MiddlewareFu
 // };
 
 const mongoData1: MongoDataType = {
-  connectionName: 'blabla',
-  eventDatabase: 'changestream',
+  connectionName: 'conn1',
+  eventDatabase: 'aaa',
   connectionString: (process.env.MONGODB_URI as string || 'mongodb://localhost:27017/devDB?replicaSet=rs0')
 };
 const rabbitData1: RabbitDataType = {
-  queues: [{ name: 'vrajzmonga' }],
+  exchange: {name: 'ex1', type: 'fanout'},
+  queues: [{name: 'q1'}, {name: 'q2'}],
   rabbitURI: (process.env.RABBITMQ_URI as string || 'amqp://localhost'),
 };
 

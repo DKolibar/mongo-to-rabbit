@@ -71,26 +71,23 @@ export class Rabbit {
     // Create new topology
     const topology: Topology = { queues: [], exchanges: [], bindings: [] };
 
+    const { exchange } = this.rabbitData;
     const { queues } = this.rabbitData;
+
+
+    if (!(exchange.name in menash.exchanges)) {
+      topology.exchanges?.push({ name: exchange.name, type: exchange.type });
+    }
+
     queues.map((queue) => {
       // If queue not exists, create it
       if (!(queue.name in menash.queues)) {
         topology.queues?.push({ name: queue.name, options: { durable: true } });
 
-        // If exchange is set, create exchange
-        if (queue.exchange) {
-          if (!(queue.exchange.name in menash.exchanges))
-            topology.exchanges?.push({ name: queue.exchange.name, type: queue.exchange.type });
-
-          // If queue is bound to an exchange, bind it
-          if (menash.bindings.bindings.length < 1) {
-            topology.bindings?.push({
-              source: queue.exchange.name,
-              destination: queue.name,
-              pattern: queue.exchange.routingKey,
-            });
-          }
-        }
+        topology.bindings?.push({
+          source: exchange.name,
+          destination: queue.name
+        });
       }
     });
 

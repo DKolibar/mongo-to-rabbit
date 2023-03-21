@@ -1,6 +1,6 @@
 import { MTROptions } from '../paramTypes';
 
-export const prefixLog: String = 'MTR2 ===> ';
+export const prefixLog: String = 'MTR ===> ';
 
 export function criticalLog(message: any): void {
   console.error(`${prefixLog} ${message}`);

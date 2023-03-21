@@ -107,10 +107,8 @@ export class MongoWatcher {
         logger.log(`got mongo event: ${event.operationType}, `);
 
         try {
-          // Try send msg to all queues
-          await Promise.all(
-            this.rabbitData.queues.map(async (queue) => formatAndSendMsg(queue, this.options, event, this.mongoData))
-          );
+          // Try send msg to exchange
+          await formatAndSendMsg(this.rabbitData.exchange, this.options, event, this.mongoData);
 
           const eventId = (event._id as any)._data;
           // Update event stream document
