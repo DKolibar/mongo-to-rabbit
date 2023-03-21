@@ -11,7 +11,6 @@ import { MongoDataType, MTROptions, RabbitDataType, DataObjectType, MiddlewareFu
 // };
 
 const mongoData1: MongoDataType = {
-  connectionName: 'conn1',
   eventDatabase: 'aaa',
   connectionString: (process.env.MONGODB_URI as string || 'mongodb://localhost:27017/devDB?replicaSet=rs0')
 };
