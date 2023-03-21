@@ -1,5 +1,5 @@
 {
-  "name": "mongo-to-rabbit",
+  "name": "@dkolibar/mongo-to-rabbit",
   "version": "5.0.0",
   "description": "a mongodb watcher notifying rabbitmq",
   "keywords": [
@@ -25,7 +25,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DKolibar/mongo-to-rabbit.git"
+    "url": "https://github.com/DKolibar/mongo-to-rabbit.git"
   },
   "author": "Shahar Yair",
   "maintainers": [
