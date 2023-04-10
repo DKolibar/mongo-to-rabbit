@@ -24,7 +24,7 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/DKolibar/mongo-to-rabbit.git"
